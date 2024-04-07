@@ -67,6 +67,7 @@ contract Raffle is VRFConsumerBaseV2 {
     /**Events */
     event EnteredRaffle(address indexed player);
     event PickedWinner(address indexed winner);
+    event RequestedRaffleWinner(uint256 indexed requestId);
 
     constructor(
         uint256 entranceFee,
@@ -119,6 +120,7 @@ contract Raffle is VRFConsumerBaseV2 {
         return (upkeepNeeded, "0x0");
     }
 
+    //请求随机数
     function performUpkeep(bytes calldata /* performData */) external {
         (bool upkeepNeeded, ) = checkUpkeep("");
         if (!upkeepNeeded) {
@@ -133,13 +135,14 @@ contract Raffle is VRFConsumerBaseV2 {
             revert("Not enough time has passed");
         }
         s_raffleState = RaffleState.CALCULATING;
-         i_vrfCoordinator.requestRandomWords(
+        uint256 requestId= i_vrfCoordinator.requestRandomWords(
             i_gasLane, //花费gas上限
             i_subscriptionId, //用LINK资助的id
             REQUEST_CONFIRMATIONS, //确认区块数
             i_callbackGasLimit, //再次确保调用不会花费太多gas
             NUM_WORDS //随机数的个数
         );
+        emit RequestedRaffleWinner(requestId);
         //我们用上面的向Chainlink节点请求一个随机数,并且会调用Chainlink上的一个特殊合约 称为vrfCoordinator
         //这个合约调用rawFulfillRandomWords函数 rawFulfillRandomWords函数会调用我们 继承 的fulfillRandomWords函数
     }
@@ -177,5 +180,14 @@ contract Raffle is VRFConsumerBaseV2 {
     }
     function getPlayer(uint256 index) external view returns (address) {
         return s_players[index];
+    }
+    function getRecentWinner() external view returns (address) {
+        return s_recentWinner;
+    }
+    function getLastTimeStamp() external view returns (uint256) {
+        return s_lastTimeStamp;
+    }
+    function getLengthOfPlayers() external view returns (uint256) {
+        return s_players.length;
     }
 }

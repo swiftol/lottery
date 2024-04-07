@@ -5,10 +5,8 @@ import {VRFCoordinatorV2Mock} from "@chainlink/contracts/src/v0.8/mocks/VRFCoord
 import {LinkToken} from "../test/mocks/LinkToken.sol";
 import {Script} from "forge-std/Script.sol";
 
-
-
 contract HelperConfig is Script {
-    struct NetworkConfig{
+    struct NetworkConfig {
         uint256 entranceFee;
         uint256 interval;
         address vrfCoordinator;
@@ -16,19 +14,26 @@ contract HelperConfig is Script {
         uint64 subscriptionId;
         uint32 callbackGasLimit;
         address link;
+        uint256 deloyerKey;
     }
+    uint256 public constant DEFAULT_ANVIL_KEY =
+        0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
 
     NetworkConfig public activeNetworkConfig;
 
     constructor() {
-        if(block.chainid == 11155111){
+        if (block.chainid == 11155111) {
             activeNetworkConfig = getSepoliaEthConfig();
         } else {
             activeNetworkConfig = getOrCreateAnvilEthConfig();
         }
     }
 
-    function getSepoliaEthConfig() public pure returns(NetworkConfig memory sepoliaNetworkConfig){
+    function getSepoliaEthConfig()
+        public
+        view
+        returns (NetworkConfig memory sepoliaNetworkConfig)
+    {
         sepoliaNetworkConfig = NetworkConfig({
             entranceFee: 0.01 ether,
             interval: 30,
@@ -36,32 +41,40 @@ contract HelperConfig is Script {
             gasLane: 0x474e34a077df58807dbe9c96d3c009b23b3c6d0cce433e59bbf5b34f823bc56c,
             subscriptionId: 10745,
             callbackGasLimit: 500000,
-            link: 0x779877A7B0D9E8603169DdbD7836e478b4624789
+            link: 0x779877A7B0D9E8603169DdbD7836e478b4624789,
+            deloyerKey: vm.envUint("PRIVATE_KEY")
         });
     }
 
-    function getOrCreateAnvilEthConfig() public returns(NetworkConfig memory anvilNetworkConfig){
-        if(activeNetworkConfig.vrfCoordinator != address(0)){
+    function getOrCreateAnvilEthConfig()
+        public
+        returns (NetworkConfig memory anvilNetworkConfig)
+    {
+        if (activeNetworkConfig.vrfCoordinator != address(0)) {
             return activeNetworkConfig;
         }
 
         uint96 baseFee = 0.25 ether; //0.25 LINK
-        uint96 gasPriceLink = 1e9;  // 1 gwei LINK
+        uint96 gasPriceLink = 1e9; // 1 gwei LINK
 
         vm.startBroadcast();
-        VRFCoordinatorV2Mock vrfCoordinatorV2Mock = new VRFCoordinatorV2Mock(baseFee, gasPriceLink);
+        VRFCoordinatorV2Mock vrfCoordinatorV2Mock = new VRFCoordinatorV2Mock(
+            baseFee,
+            gasPriceLink
+        );
         vm.stopBroadcast();
         LinkToken link = new LinkToken();
 
-        return NetworkConfig({
-            entranceFee: 0.01 ether,
-            interval: 30,
-            vrfCoordinator: address(vrfCoordinatorV2Mock),
-            gasLane: 0x474e34a077df58807dbe9c96d3c009b23b3c6d0cce433e59bbf5b34f823bc56c,
-            subscriptionId: 0,
-            callbackGasLimit: 500000,
-            link : address(link)
-        });
-        
+        return
+            NetworkConfig({
+                entranceFee: 0.01 ether,
+                interval: 30,
+                vrfCoordinator: address(vrfCoordinatorV2Mock),
+                gasLane: 0x474e34a077df58807dbe9c96d3c009b23b3c6d0cce433e59bbf5b34f823bc56c,
+                subscriptionId: 0,
+                callbackGasLimit: 500000,
+                link: address(link),
+                deloyerKey: DEFAULT_ANVIL_KEY
+            });
     }
 }
